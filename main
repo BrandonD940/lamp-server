@@ -1,0 +1,79 @@
+#!/bin/bash
+########################################
+# BASH Script to LAMP Server on RaspPi
+
+# Make sure Script is running as root
+if [ "$(id -u)" != "0" ]; then
+	echo "This Script Must be Ran as Root" 1>&2
+	exit 1
+fi
+
+#Update RaspPi
+sudo apt-get update -y
+
+#Change RaspPi Password
+echo Change Your Password
+sudo passwd
+
+#Add New User
+sudo adduser aerial
+sudo usermod -aG sudo aerial
+#sudo usermod -a -G adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,netdev,gpio,i2c,spi aerial
+#sudo su - aerial
+
+#Install Apache2
+ sudo apt update
+	sudo apt install apache2 -y
+
+#Install MySQL
+ sudo apt install mariadb-server
+	sudo mysql_secure_installation
+	sudo apt install php7.3-mysql -y
+
+# Creating a Database and User
+#sudo mysql -u root -p
+
+PASS=`pwgen -s 40 1`
+
+sudo mysql -uroot <<MYSQL_SCRIPT
+
+#Create DATABASE <name>;
+CREATE DATABASE $Brandon;
+
+#CREATE USER '<User>'@'localhost' IDENTIFIED BY '<password>';
+CREATE USER '$Brandon'@'localhost' IDENTIFIED BY '$PASS';
+
+#GRANT ALL PRIVILGES ON <name>.* TO '<USER>'@'Localhost';
+GRANT ALL PRIVILEGES ON $Brandon.* TO '$Brandon'@'localhost';
+
+#FLUSH PRIVILEGES;
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
+echo "New MySQL User Created"
+echo "Username:   $Brandon"
+echo "Password:   $PASS"
+
+#Install MySQL Server and files
+sudo apt-get install mysql-server -y
+sudo apt-get install apache2 php7.3 libapache2-mod-php7.3 -y
+
+#Install PHPmyadmin
+sudo apt-get install phpmyadmin -y
+
+#Configure Phpmyadmin and set permissions
+echo 'Include /etc/phpmyadmin/apache.conf' >> /etc/apache2/apache2.conf
+sudo chown -R www-data:www-data /var/www
+
+#Restart Apache2
+sudo /etc/init.d/apache2 restart
+
+#Install basic firewall
+sudo apt install ufw
+sudo ufw enable
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 8080
+
